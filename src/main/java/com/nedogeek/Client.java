@@ -8,28 +8,66 @@ import org.json.JSONObject;
 import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 
 public class Client {
-    private static final String userName = "someUser";
-    private static final String password = "somePassword";
 
-    private static final String SERVER = "ws://77.47.200.184:8080/ws";
+    private static final List<String> tier1 = Arrays.asList("AA", "KK", "QQ", "JJ", "AKs");
+    private static final List<String> tier2 = Arrays.asList("AQs","1010","AK","AJs","KQs","99");
+    private static final List<String> tier3 = Arrays.asList("A10s","AQ","KJs","88","K10s","QJs");
+    private static final List<String> tier4 = Arrays.asList("A9s","AJ","Q10s","KQ","77","J10s");
+    private static final List<String> tier5 = Arrays.asList("A8s","K9s","A10","A5s","A7s");
+    private static final List<String> tier6 = Arrays.asList("KJ","66","109s","A4s","Q9s");
+    private static final List<String> tier7 = Arrays.asList("J9s","QJ","A6s","55","A3s","K8s","K10");
+    private static final List<String> tier8 = Arrays.asList("98s","108s","K7s","A2s");
+    private static final List<String> tier9 = Arrays.asList("87s","Q10","Q8s","44","A9","J8s","76s","J10");
+
+    private static final List<String> allTier = Arrays.asList("AA", "KK", "QQ", "JJ", "AKs", "AQs","1010","AK","AJs","KQs","99",
+            "A10s","AQ","KJs","88","K10s","QJs", "A9s","AJ","Q10s","KQ","77","J10s", "A8s","K9s","A10","A5s","A7s",
+            "KJ","66","109s","A4s","Q9s", "J9s","QJ","A6s","55","A3s","K8s","K10", "98s","108s","K7s","A2s",
+            "87s","Q10","Q8s","44","A9","J8s","76s","J10");
+
+    private static final String userName = "levi";
+    private static final String password = "levi";
+
+    private static final String SERVER = "ws://192.168.0.21:8080/ws";
     private org.eclipse.jetty.websocket.WebSocket.Connection connection;
 
     enum Commands {
         Check, Call, Rise, Fold, AllIn
     }
 
-    class Card {
+    class Card implements Comparable<Card> {
         final String suit;
         final String value;
 
         Card(String suit, String value) {
             this.suit = suit;
             this.value = value;
+        }
+
+        public int compareTo(Card o) {
+            return this.cardValue() - o.cardValue();
+        }
+
+        private int cardValue() {
+            int result = -1;
+            if ("A".equals(value)) {
+                result = 14;
+            } else if ("K".equals(value)) {
+                result = 13;
+            } else if ("Q".equals(value)) {
+                result = 12;
+            } else if ("J".equals(value)) {
+                result = 11;
+            } else {
+                result = Integer.parseInt(value);
+            }
+            return result;
         }
     }
 
@@ -136,7 +174,7 @@ public class Client {
     }
 
     private List<String> parseEvent(JSONArray eventJSON) {
-        List<String> events = new ArrayList<>();
+        List<String> events = new ArrayList<String>();
 
         for (int i = 0; i < eventJSON.length(); i++) {
             events.add(eventJSON.getString(i));
@@ -146,14 +184,14 @@ public class Client {
     }
 
     private List<Player> parsePlayers(JSONArray playersJSON) {
-        List<Player> players = new ArrayList<>();
+        List<Player> players = new ArrayList<Player>();
         for (int i = 0; i < playersJSON.length(); i++) {
             JSONObject playerJSON = (JSONObject) playersJSON.get(i);
             int balance = 0;
             int bet = 0;
             String status = "";
             String name = "";
-            List<Card> cards = new ArrayList<>();
+            List<Card> cards = new ArrayList<Card>();
 
             if (playerJSON.has("balance")) {
                 balance = playerJSON.getInt("balance");
@@ -178,7 +216,7 @@ public class Client {
     }
 
     private List<Card> parseCards(JSONArray cardsJSON) {
-        List<Card> cards = new ArrayList<>();
+        List<Card> cards = new ArrayList<Card>();
 
         for (int i = 0; i < cardsJSON.length(); i++) {
             String cardSuit = ((JSONObject) cardsJSON.get(i)).getString("cardSuit");
@@ -191,6 +229,38 @@ public class Client {
     }
 
     private void doAnswer() throws IOException {
-        connection.sendMessage(Commands.AllIn.toString());
+        if ("BLIND".equals(gameRound)) {
+            if (!handInTopTiers()) {
+                System.out.println("ALLLIN!!!!!!!!!!!!!!!!!");
+                connection.sendMessage(Commands.AllIn.toString());
+            }
+        } else {
+            connection.sendMessage(Commands.Fold.toString());
+        }
+    }
+
+    private boolean handInTopTiers() {
+        List<Card> myCards = getMyCards(players);
+        String tierQualifier = generateTierQualifier(myCards);
+        return allTier.contains(tierQualifier);
+    }
+
+    private String generateTierQualifier(List<Card> myCards) {
+        String result = myCards.get(0).value + myCards.get(1).value;
+        if (myCards.get(0).suit.equals(myCards.get(1).suit)) {
+            result += "s";
+        }
+        return result;
+    }
+
+    private List<Card> getMyCards(List<Player> players) {
+        List<Card> result = new ArrayList<Card>();
+        for (Player player : players) {
+            if (userName.equals(player.name)) {
+                result.addAll(player.cards);
+            }
+        }
+        Collections.sort(result);
+        return result;
     }
 }
