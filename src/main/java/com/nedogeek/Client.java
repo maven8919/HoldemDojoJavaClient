@@ -7,10 +7,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 
@@ -31,10 +28,13 @@ public class Client {
             "KJ","66","109s","A4s","Q9s", "J9s","QJ","A6s","55","A3s","K8s","K10", "98s","108s","K7s","A2s",
             "87s","Q10","Q8s","44","A9","J8s","76s","J10");
 
+    private static final int blind = 10;
+    private static final Random random = new Random();
+
     private static final String userName = "levi";
     private static final String password = "levi";
 
-    private static final String SERVER = "ws://192.168.0.21:8080/ws";
+    private static final String SERVER = "ws://10.0.8.148:8080/ws";
     private org.eclipse.jetty.websocket.WebSocket.Connection connection;
 
     enum Commands {
@@ -229,20 +229,77 @@ public class Client {
     }
 
     private void doAnswer() throws IOException {
+        List<Card> myCards = getMyCards(players);
+        int amountToCall = Math.max(0, computeAmountToCall(players));
+        int myBalance = getMyBalance(players);
         if ("BLIND".equals(gameRound)) {
-            if (!handInTopTiers()) {
-                System.out.println("ALLLIN!!!!!!!!!!!!!!!!!");
-                connection.sendMessage(Commands.AllIn.toString());
+            if (!handInTopTiers(myCards) && amountToCall > 0) {
+                connection.sendMessage(Commands.Fold.toString());
+            } else if (!handInTopTiers(myCards) && amountToCall == 0) {
+                connection.sendMessage(Commands.Check.toString());
+            } else if (handInTopTiers(myCards) && amountToCall == 0) {
+                System.out.println("BENNNNNNNNNNNNNNNNNN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                if(Math.random() < 0.5) {
+                    connection.sendMessage(Commands.Check.toString());
+                } else {
+                    int handTier = getHandTier(myCards);
+                    int raise = blind * (random.nextInt(handTier - 1) + 1);
+                    connection.sendMessage(Commands.Rise.toString() + "," + raise);
+                }
+            } else {
+                int handTier = getHandTier(myCards);
+                int percentageToCall = (int) ((amountToCall * 100.0f) / myBalance);
+                System.out.println("Percentage: " + percentageToCall);
+                System.out.println(100 - ((handTier - 1) * 10));
+                System.out.println(amountToCall);
+                if (100 - ((handTier - 1) * 10) >= percentageToCall) {
+                    connection.sendMessage(Commands.Call.toString());
+                } else {
+                    connection.sendMessage(Commands.Fold.toString());
+                }
             }
         } else {
-            connection.sendMessage(Commands.Fold.toString());
+            connection.sendMessage(Commands.Rise.toString() + "," + 30);
         }
     }
 
-    private boolean handInTopTiers() {
-        List<Card> myCards = getMyCards(players);
-        String tierQualifier = generateTierQualifier(myCards);
-        return allTier.contains(tierQualifier);
+    private int getMyBalance(List<Player> players) {
+        int result = -1;
+        for (Player player : players) {
+            if (player.name.equals(userName)) {
+                result = player.balance;
+                break;
+            }
+        }
+        return result;
+    }
+
+    private int getHandTier(List<Card> myCards) {
+        int result = 9;
+        String hand = generateTierQualifier(myCards);
+        if (tier1.contains(hand)) {
+            result = 1;
+        } else if (tier2.contains(hand)) {
+            result = 2;
+        } else if (tier3.contains(hand)) {
+            result = 3;
+        } else if (tier4.contains(hand)) {
+            result = 4;
+        } else if (tier5.contains(hand)) {
+            result = 5;
+        } else if (tier6.contains(hand)) {
+            result = 6;
+        } else if (tier7.contains(hand)) {
+            result = 7;
+        } else if (tier8.contains(hand)) {
+            result = 8;
+        }
+        return result;
+    }
+
+    private boolean handInTopTiers(List<Card> myCards) {
+        String hand = generateTierQualifier(myCards);
+        return allTier.contains(hand);
     }
 
     private String generateTierQualifier(List<Card> myCards) {
@@ -262,5 +319,18 @@ public class Client {
         }
         Collections.sort(result);
         return result;
+    }
+
+    private int computeAmountToCall(List<Player> players) {
+        int myPot = 0;
+        int highestAmount = -1;
+        for (Player player : players) {
+            if (player.name.equals(userName)) {
+                myPot = player.bet;
+            } else {
+                highestAmount = Math.max(highestAmount, player.bet);
+            }
+        }
+        return highestAmount - myPot;
     }
 }
