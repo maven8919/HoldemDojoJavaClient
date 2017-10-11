@@ -232,13 +232,14 @@ public class Client {
         List<Card> myCards = getMyCards(players);
         int amountToCall = Math.max(0, computeAmountToCall(players));
         int myBalance = getMyBalance(players);
+        int percentageToCall = (int) ((amountToCall * 100.0f) / myBalance);
+        int myPot = getMyPot(players);
         if ("BLIND".equals(gameRound)) {
             if (!handInTopTiers(myCards) && amountToCall > 0) {
                 connection.sendMessage(Commands.Fold.toString());
             } else if (!handInTopTiers(myCards) && amountToCall == 0) {
                 connection.sendMessage(Commands.Check.toString());
             } else if (handInTopTiers(myCards) && amountToCall == 0) {
-                System.out.println("BENNNNNNNNNNNNNNNNNN!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                 if(Math.random() < 0.5) {
                     connection.sendMessage(Commands.Check.toString());
                 } else {
@@ -248,18 +249,156 @@ public class Client {
                 }
             } else {
                 int handTier = getHandTier(myCards);
-                int percentageToCall = (int) ((amountToCall * 100.0f) / myBalance);
-                System.out.println("Percentage: " + percentageToCall);
-                System.out.println(100 - ((handTier - 1) * 10));
-                System.out.println(amountToCall);
                 if (100 - ((handTier - 1) * 10) >= percentageToCall) {
                     connection.sendMessage(Commands.Call.toString());
                 } else {
                     connection.sendMessage(Commands.Fold.toString());
                 }
             }
+        } else if ("THREE_CARDS".equals(gameRound)) {
+            if (amountToCall == 0) {
+                if (cardCombination.startsWith("High card ")) {
+                    connection.sendMessage(Commands.Check.toString());
+                } else {
+                    if(Math.random() < 0.5) {
+                        connection.sendMessage(Commands.Check.toString());
+                    } else {
+                        int handTier = getHandTier(myCards);
+                        int raise = blind * (random.nextInt(handTier - 1) + 1);
+                        connection.sendMessage(Commands.Rise.toString() + "," + raise);
+                    }
+                }
+            } else {
+                if (cardCombination.startsWith("High card ")) {
+                    if (cardCombination.charAt(10) == 'A') {
+                        if (percentageToCall <= 10) {
+                            connection.sendMessage(Commands.Call.toString());
+                        } else {
+                            connection.sendMessage(Commands.Fold.toString());
+                        }
+                    }
+                } else if (cardCombination.startsWith("Pair of ")) {
+                    if (myPot > 100) {
+                        connection.sendMessage(Commands.Call.toString());
+                    } else {
+                        if (cardCombination.charAt(8) == 'A' || cardCombination.charAt(8) == 'K' || cardCombination.charAt(8) == 'Q' || cardCombination.charAt(8) == 'J') {
+                            if (percentageToCall <= 15) {
+                                connection.sendMessage(Commands.Call.toString());
+                            } else {
+                                connection.sendMessage(Commands.Fold.toString());
+                            }
+                        } else {
+                            if (percentageToCall <= 10) {
+                                connection.sendMessage(Commands.Call.toString());
+                            } else {
+                                connection.sendMessage(Commands.Fold.toString());
+                            }
+                        }
+                    }
+                } else {
+                    if(Math.random() < 0.5) {
+                        connection.sendMessage(Commands.Call.toString());
+                    } else {
+                        int handTier = getHandTier(myCards);
+                        int raise = blind * (random.nextInt(handTier - 1) + 1);
+                        connection.sendMessage(Commands.Rise.toString() + "," + raise);
+                    }
+                }
+            }
+        } else if ("FOUR_CARDS".equals(gameRound)) {
+            if (amountToCall == 0) {
+                if (cardCombination.startsWith("High card ") || cardCombination.startsWith("Pair of ")) {
+                    connection.sendMessage(Commands.Check.toString());
+                } else {
+                    if(Math.random() < 0.5) {
+                        connection.sendMessage(Commands.Check.toString());
+                    } else {
+                        int handTier = getHandTier(myCards);
+                        int raise = blind * (random.nextInt(handTier - 1) + 1);
+                        connection.sendMessage(Commands.Rise.toString() + "," + raise);
+                    }
+                }
+            } else {
+                if (cardCombination.startsWith("High card ")) {
+                    if (cardCombination.charAt(10) == 'A') {
+                        if (percentageToCall <= 5) {
+                            connection.sendMessage(Commands.Call.toString());
+                        } else {
+                            connection.sendMessage(Commands.Fold.toString());
+                        }
+                    }
+                } else if (cardCombination.startsWith("Pair of ")) {
+                    if (cardCombination.charAt(8) == 'A' || cardCombination.charAt(8) == 'K' || cardCombination.charAt(8) == 'Q' || cardCombination.charAt(8) == 'J') {
+                        if (percentageToCall <= 10) {
+                            connection.sendMessage(Commands.Call.toString());
+                        } else {
+                            connection.sendMessage(Commands.Fold.toString());
+                        }
+                    } else {
+                        if (percentageToCall <= 8) {
+                            connection.sendMessage(Commands.Call.toString());
+                        } else {
+                            connection.sendMessage(Commands.Fold.toString());
+                        }
+                    }
+                } else {
+                    if(Math.random() < 0.5) {
+                        connection.sendMessage(Commands.Call.toString());
+                    } else {
+                        int handTier = getHandTier(myCards);
+                        int raise = blind * (random.nextInt(handTier - 1) + 1);
+                        connection.sendMessage(Commands.Rise.toString() + "," + raise);
+                    }
+                }
+            }
+        } else if ("FIVE_CARDS".equals(gameRound)) {
+            if (amountToCall == 0) {
+                if (cardCombination.startsWith("High card ") || cardCombination.startsWith("Pair of ")) {
+                    connection.sendMessage(Commands.Check.toString());
+                } else {
+                    if(Math.random() < 0.5) {
+                        connection.sendMessage(Commands.Check.toString());
+                    } else {
+                        int handTier = getHandTier(myCards);
+                        int raise = blind * (random.nextInt(handTier - 1) + 1);
+                        connection.sendMessage(Commands.Rise.toString() + "," + raise);
+                    }
+                }
+            } else {
+                if (cardCombination.startsWith("High card ")) {
+                    if (cardCombination.charAt(10) == 'A') {
+                        if (percentageToCall <= 0) {
+                            connection.sendMessage(Commands.Call.toString());
+                        } else {
+                            connection.sendMessage(Commands.Fold.toString());
+                        }
+                    }
+                } else if (cardCombination.startsWith("Pair of ")) {
+                    if (cardCombination.charAt(8) == 'A' || cardCombination.charAt(8) == 'K' || cardCombination.charAt(8) == 'Q' || cardCombination.charAt(8) == 'J') {
+                        if (percentageToCall <= 5) {
+                            connection.sendMessage(Commands.Call.toString());
+                        } else {
+                            connection.sendMessage(Commands.Fold.toString());
+                        }
+                    } else {
+                        if (percentageToCall <= 2) {
+                            connection.sendMessage(Commands.Call.toString());
+                        } else {
+                            connection.sendMessage(Commands.Fold.toString());
+                        }
+                    }
+                } else {
+                    if(Math.random() < 0.5) {
+                        connection.sendMessage(Commands.Call.toString());
+                    } else {
+                        int handTier = getHandTier(myCards);
+                        int raise = blind * (random.nextInt(handTier - 1) + 1);
+                        connection.sendMessage(Commands.Rise.toString() + "," + raise);
+                    }
+                }
+            }
         } else {
-            connection.sendMessage(Commands.Rise.toString() + "," + 30);
+            connection.sendMessage(Commands.Check.toString());
         }
     }
 
@@ -268,6 +407,17 @@ public class Client {
         for (Player player : players) {
             if (player.name.equals(userName)) {
                 result = player.balance;
+                break;
+            }
+        }
+        return result;
+    }
+
+    private int getMyPot(List<Player> players) {
+        int result = -1;
+        for (Player player : players) {
+            if (player.name.equals(userName)) {
+                result = player.bet;
                 break;
             }
         }
